@@ -524,6 +524,22 @@ int main(int argc, char** argv) {
     cmd_probe->add_option("--light", probe_light,
                           "Only probe a specific light id");
     cmd_probe->callback([&]() {
+#ifdef ALIENFX_HID_BACKEND_LIBUSB
+        // Build này được cấu hình với -DALIENFX_HID_BACKEND=libusb, nó
+        // detach driver HID khỏi interface nó mở (xem comment trong
+        // AlienFX-SDK/CMakeLists.txt) và chỉ reattach khi đóng thiết bị.
+        // `probe` mở mọi thiết bị phát hiện rồi block chờ nhập liệu -- trên
+        // phần cứng mà VID họ AlienFX cũng sở hữu một interface HID input
+        // (vd bàn phím Darfon RGB), tổ hợp đó có thể vô hiệu hóa chính bàn
+        // phím cần dùng để trả lời prompt, không cách nào khôi phục ngoài
+        // máy khác/SSH. Từ chối chạy interactive.
+        cerr << "probe is disabled on a libusb-backend build: opening "
+                "devices detaches the kernel HID driver (disabling e.g. the "
+                "keyboard), then this command blocks on a prompt with no way "
+                "to answer it. Rebuild with the default "
+                "-DALIENFX_HID_BACKEND=hidraw.\n";
+        return;
+#endif
         ensureInit();
 
         for (auto& d : afx_map.fxdevs) {
